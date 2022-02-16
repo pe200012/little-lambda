@@ -1,0 +1,13 @@
+Var.  Term5 ::= Integer;
+Unit. Term5 ::= "()";
+Named.  Term4 ::= Ident;
+App.  Term3 ::= Term3 Term4;
+Lam.  Term2 ::= "λ" Term2;
+Mu.   Term1 ::= "μ" Term1;
+Let.    Term ::= "let" Binding "in" Term;
+LetDef. Term ::= "let" Binding;
+
+coercions Term 5 ;
+
+BindPair. Binding ::= Ident "=" Term;
+

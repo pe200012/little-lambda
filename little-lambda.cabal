@@ -1,0 +1,80 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           little-lambda
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/pe200012/little-lambda#readme>
+homepage:       https://github.com/pe200012/little-lambda#readme
+bug-reports:    https://github.com/pe200012/little-lambda/issues
+author:         pe200012
+maintainer:     1326263755@qq.com
+copyright:      2022 pe200012
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/pe200012/little-lambda
+
+library
+  exposed-modules:
+      Eval
+      Lambda.Abs
+      Lambda.ErrM
+      Lambda.Lex
+      Lambda.Par
+      Lambda.Print
+      Lambda.Skel
+      Lib
+  other-modules:
+      Paths_little_lambda
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , haskeline
+    , mtl
+  default-language: Haskell2010
+
+executable little-lambda-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_little_lambda
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , haskeline
+    , little-lambda
+    , mtl
+  default-language: Haskell2010
+
+test-suite little-lambda-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_little_lambda
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , haskeline
+    , little-lambda
+    , mtl
+  default-language: Haskell2010
