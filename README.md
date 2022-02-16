@@ -32,16 +32,19 @@ Lambda Calculus REPL 0.0.1
 > let x = suc x
 ()
 > x
-λ λ 1 (μ suc 0 1 0)
+λ λ 1 ((μ suc 0) 1 0)
 > let x = let y = y in x
 ()
 > x
 let y = μ 0 in μ let y = μ 0 in 0
+> x
+μ 0
 > let x = let y = y in x y
 ()
 > x
-let y = μ 0 in μ let y = μ 0 in 0 y y
->
+let y = μ 0 in (μ let y = μ 0 in 0 y) y
+> x
+(μ 0 (μ 0)) (μ 0)
 ```
 
 ## TODO

@@ -129,7 +129,7 @@ eval (App te te') = do
         _       -> return $ App t te'
 eval (Lam te                          ) = return $ Lam te
 eval (Mu  te                          ) = subst te (Mu te)
-eval (Let (BindPair (Ident id) te') te) = replace id te' (if occurs id te' then Mu (fixpoint id te') else te')
+eval (Let (BindPair (Ident id) te') te) = replace id te (if occurs id te' then Mu (fixpoint id te') else te')
   where
     replace :: Monad m => String -> Term -> Term -> LangM m Term
     replace name (Var n) b = return $ Var n
@@ -148,29 +148,54 @@ eval (LetDef (BindPair (Ident s) te)) = isClosedTerm te >>= \yes -> if yes
         modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
         return Unit
     else throwError OpenTerm
-eval (Named (Ident s)) = gets (lookup s) >>= maybe (throwError UnboundVariable) eval
-eval Unit              = return Unit
+eval (Named (Ident s)) = gets (lookup s) >>= maybe
+    (throwError UnboundVariable)
+    (\x -> do
+        t <- eval x
+        modify (insert s t)
+        return t
+    )
+eval Unit = return Unit
 
 prettyprintTopLevel :: Monad m => Term -> LangM m String
-prettyprintTopLevel (Var n)                            = return $ show n
-prettyprintTopLevel Unit                               = return "()"
-prettyprintTopLevel (Named (Ident id)                ) = gets (lookup id) >>= maybe (throwError UnboundVariable) prettyprintTopLevel
-prettyprintTopLevel (App te te'@(Var _)              ) = return $ prettyprint te ++ " " ++ prettyprint te'
-prettyprintTopLevel (App te te'@Unit                 ) = return $ prettyprint te ++ " " ++ prettyprint te'
-prettyprintTopLevel (App te te'                      ) = return $ prettyprint te ++ " (" ++ prettyprint te' ++ ")"
+prettyprintTopLevel (Var n)            = return $ show n
+prettyprintTopLevel Unit               = return "()"
+prettyprintTopLevel (Named (Ident id)) = gets (lookup id) >>= maybe (throwError UnboundVariable) prettyprintTopLevel
+prettyprintTopLevel (App te te'      ) = do
+    let s = case te of
+            Named _ -> prettyprint te
+            Var   _ -> prettyprint te
+            Unit    -> prettyprint te
+            App _ _ -> prettyprint te
+            _       -> "(" ++ prettyprint te ++ ")"
+    let s' = case te' of
+            Named _ -> prettyprint te'
+            Var   _ -> prettyprint te'
+            Unit    -> prettyprint te'
+            _       -> "(" ++ prettyprint te' ++ ")"
+    return $ s ++ " " ++ s'
 prettyprintTopLevel (Lam te                          ) = return $ "λ " ++ prettyprint te
 prettyprintTopLevel (Mu  te                          ) = return $ "μ " ++ prettyprint te
 prettyprintTopLevel (Let (BindPair (Ident id) te') te) = return $ "let " ++ id ++ " = " ++ prettyprint te' ++ " in " ++ prettyprint te
 prettyprintTopLevel (LetDef (BindPair (Ident s) te)  ) = return $ "let " ++ s ++ " = " ++ prettyprint te
 
 prettyprint :: Term -> String
-prettyprint (Var n)                            = show n
-prettyprint Unit                               = "()"
-prettyprint (Named (Ident id)                ) = id
-prettyprint (App te te'@(Var _)              ) = prettyprint te ++ " " ++ prettyprint te'
-prettyprint (App te te'@Unit                 ) = prettyprint te ++ " " ++ prettyprint te'
-prettyprint (App te te'@(Named _)            ) = prettyprint te ++ " " ++ prettyprint te'
-prettyprint (App te te'                      ) = prettyprint te ++ " (" ++ prettyprint te' ++ ")"
+prettyprint (Var n)            = show n
+prettyprint Unit               = "()"
+prettyprint (Named (Ident id)) = id
+prettyprint (App te te') =
+    let s = case te of
+            Named _ -> prettyprint te
+            Var   _ -> prettyprint te
+            Unit    -> prettyprint te
+            App _ _ -> prettyprint te
+            _       -> "(" ++ prettyprint te ++ ")"
+        s' = case te' of
+            Named _ -> prettyprint te'
+            Var   _ -> prettyprint te'
+            Unit    -> prettyprint te'
+            _       -> "(" ++ prettyprint te' ++ ")"
+    in  s ++ " " ++ s'
 prettyprint (Lam te                          ) = "λ " ++ prettyprint te
 prettyprint (Mu  te                          ) = "μ " ++ prettyprint te
 prettyprint (Let (BindPair (Ident id) te') te) = "let " ++ id ++ " = " ++ prettyprint te' ++ " in " ++ prettyprint te

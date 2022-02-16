@@ -20,8 +20,8 @@ import           System.Console.Haskeline
 -- Right "\955 \955 1 0 1 0"
 
 -- | repl main loop
-main :: IO ()
-main = do
+interactive :: IO ()
+interactive = do
     putStrLn "Lambda Calculus REPL 0.0.1"
     runInputT defaultSettings $ repl Map.empty
   where
@@ -48,3 +48,5 @@ main = do
                                 outputStrLn x
                                 repl env'
 
+main :: IO ()
+main = interactive
