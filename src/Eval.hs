@@ -112,7 +112,7 @@ fixpoint defname = go 0 . pureShift 1
                                | otherwise    = Named (Ident s)
     go depth (App te te') = App (go depth te) (go depth te')
     go depth (Lam te    ) = Lam (go (depth + 1) te)
-    go depth (Mu  te    ) = Lam (go (depth + 1) te)
+    go depth (Mu  te    ) = Mu (go (depth + 1) te)
     go depth (Let (BindPair (Ident s) te') te)
         | defname == s = Let (BindPair (Ident s) (if occurs s te' then Mu (fixpoint s te') else te')) te
         | otherwise    = Let (BindPair (Ident s) (if occurs s te' then go depth (Mu (fixpoint s te')) else go depth te')) (go depth te)
@@ -129,32 +129,23 @@ eval (App te te') = do
         _       -> return $ App t te'
 eval (Lam te                          ) = return $ Lam te
 eval (Mu  te                          ) = subst te (Mu te)
-eval (Let (BindPair (Ident id) te') te) = do
-    no <- not <$> isClosedTerm te'
-    when no (throwError OpenTerm)
-    oldDef <- gets $ lookup id
-    modify (insert id (if occurs id te then Mu (fixpoint id te) else te))
-    te' <- eval te
-    modify $ Map.alter (const oldDef) id
-    return te'
-    -- te' <- if occurs id te' then return $ Mu (fixpoint id te') else eval te'
-    -- subst (replaceWithIndex 0 id (pureShift 1 te)) te'
---   where
---     replaceWithIndex :: Int -> String -> Term -> Term
---     replaceWithIndex depth name (Var n) = Var n
---     replaceWithIndex depth name Unit    = Unit
---     replaceWithIndex depth name (Named (Ident s)) | s == name = Var (toInteger depth)
---                                                   | otherwise = Named (Ident s)
---     replaceWithIndex depth name (App te2 te3) = App (replaceWithIndex depth name te2) (replaceWithIndex depth name te3)
---     replaceWithIndex depth name (Lam te2    ) = Lam (replaceWithIndex (depth + 1) name te2)
---     replaceWithIndex depth name (Mu  te2    ) = Mu (replaceWithIndex (depth + 1) name te2)
---     replaceWithIndex depth name x@(Let (BindPair (Ident s) te3) te2) | s == name = _
---                                                                      | otherwise = _
---     replaceWithIndex depth name (LetDef (BindPair (Ident s) te2)) | s == name = _
---                                                                   | otherwise = _
+eval (Let (BindPair (Ident id) te') te) = replace id te' (if occurs id te' then Mu (fixpoint id te') else te')
+  where
+    replace :: Monad m => String -> Term -> Term -> LangM m Term
+    replace name (Var n) b = return $ Var n
+    replace name Unit    b = return Unit
+    replace name (Named (Ident s)) b | name == s = return b
+                                     | otherwise = return $ Named (Ident s)
+    replace name (App te2 te3) b = App <$> replace name te2 b <*> replace name te3 b
+    replace name (Lam te2    ) b = Lam <$> replace name te2 b
+    replace name (Mu  te2    ) b = Mu <$> replace name te2 b
+    replace name o@(Let (BindPair (Ident s) te3) te2) b =
+        let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> pure te2 in eval =<< x
+
+    replace name x@(LetDef (BindPair (Ident s) te2)) b = throwError ValueExpected
 eval (LetDef (BindPair (Ident s) te)) = isClosedTerm te >>= \yes -> if yes
     then do
-        modify . insert s =<< eval (if occurs s te then Mu (fixpoint s te) else te)
+        modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
         return Unit
     else throwError OpenTerm
 eval (Named (Ident s)) = gets (lookup s) >>= maybe (throwError UnboundVariable) eval
