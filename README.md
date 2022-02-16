@@ -33,6 +33,14 @@ Lambda Calculus REPL 0.0.1
 ()
 > x
 λ λ 1 (μ suc 0 1 0)
+> let x = let y = y in x
+()
+> x
+let y = μ 0 in μ let y = μ 0 in 0
+> let x = let y = y in x y
+()
+> x
+let y = μ 0 in μ let y = μ 0 in 0 y y
 >
 ```
 
