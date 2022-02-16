@@ -7,7 +7,7 @@ import           Control.Monad.State.Lazy       ( evalStateT
                                                 )
 import qualified Data.Map.Lazy                 as Map
 import           Data.Map.Lazy                  ( Map )
-import           Eval                           ( eval
+import           Eval                           ( eval'
                                                 , prettyprintTopLevel
                                                 )
 import           Lambda.Abs                     ( Term )
@@ -35,7 +35,7 @@ interactive = do
             Just stm -> case pTerm $ myLexer stm of
                 Left  err -> error $ show err
                 Right t   -> do
-                    y <- runExceptT (runStateT (eval t) env)
+                    y <- runExceptT (runStateT (eval' 100 t) env)
                     case y of
                         Left le -> do
                             outputStrLn $ "error: " ++ show le

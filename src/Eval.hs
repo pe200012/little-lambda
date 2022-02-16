@@ -157,6 +157,44 @@ eval (Named (Ident s)) = gets (lookup s) >>= maybe
     )
 eval Unit = return Unit
 
+eval' :: Monad m => Int -> Term -> LangM m Term
+eval' gas x | gas <= 0 = return x
+eval' gas (Var n     ) = return $ Var n
+eval' gas (App te te') = do
+    t <- eval' gas te
+    case t of
+        Lam te2 -> eval' gas =<< subst te2 te'
+        _       -> return $ App t te'
+eval' gas (Lam te                          ) = return $ Lam te
+eval' gas (Mu  te                          ) = eval' (gas - 1) =<< subst te (Mu te)
+eval' gas (Let (BindPair (Ident id) te') te) = eval' gas =<< replace id te (if occurs id te' then Mu (fixpoint id te') else te')
+  where
+    replace :: Monad m => String -> Term -> Term -> LangM m Term
+    replace name (Var n) b = return $ Var n
+    replace name Unit    b = return Unit
+    replace name (Named (Ident s)) b | name == s = return b
+                                     | otherwise = return $ Named (Ident s)
+    replace name (App te2 te3) b = App <$> replace name te2 b <*> replace name te3 b
+    replace name (Lam te2    ) b = Lam <$> replace name te2 b
+    replace name (Mu  te2    ) b = Mu <$> replace name te2 b
+    replace name o@(Let (BindPair (Ident s) te3) te2) b =
+        let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> pure te2 in eval' gas =<< x
+
+    replace name x@(LetDef (BindPair (Ident s) te2)) b = throwError ValueExpected
+eval' gas (LetDef (BindPair (Ident s) te)) = isClosedTerm te >>= \yes -> if yes
+    then do
+        modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
+        return Unit
+    else throwError OpenTerm
+eval' gas (Named (Ident s)) = gets (lookup s) >>= maybe
+    (throwError UnboundVariable)
+    (\x -> do
+        t <- eval' gas x
+        modify (insert s t)
+        return t
+    )
+eval' gas Unit = return Unit
+
 prettyprintTopLevel :: Monad m => Term -> LangM m String
 prettyprintTopLevel (Var n)            = return $ show n
 prettyprintTopLevel Unit               = return "()"
