@@ -125,7 +125,7 @@ eval (Var n     ) = return $ Var n
 eval (App te te') = do
     t <- eval te
     case t of
-        Lam te2 -> subst te2 te'
+        Lam te2 -> eval =<< subst te2 te'
         _       -> return $ App t te'
 eval (Lam te                          ) = return $ Lam te
 eval (Mu  te                          ) = subst te (Mu te)
@@ -137,6 +137,21 @@ eval (Let (BindPair (Ident id) te') te) = do
     te' <- eval te
     modify $ Map.alter (const oldDef) id
     return te'
+    -- te' <- if occurs id te' then return $ Mu (fixpoint id te') else eval te'
+    -- subst (replaceWithIndex 0 id (pureShift 1 te)) te'
+--   where
+--     replaceWithIndex :: Int -> String -> Term -> Term
+--     replaceWithIndex depth name (Var n) = Var n
+--     replaceWithIndex depth name Unit    = Unit
+--     replaceWithIndex depth name (Named (Ident s)) | s == name = Var (toInteger depth)
+--                                                   | otherwise = Named (Ident s)
+--     replaceWithIndex depth name (App te2 te3) = App (replaceWithIndex depth name te2) (replaceWithIndex depth name te3)
+--     replaceWithIndex depth name (Lam te2    ) = Lam (replaceWithIndex (depth + 1) name te2)
+--     replaceWithIndex depth name (Mu  te2    ) = Mu (replaceWithIndex (depth + 1) name te2)
+--     replaceWithIndex depth name x@(Let (BindPair (Ident s) te3) te2) | s == name = _
+--                                                                      | otherwise = _
+--     replaceWithIndex depth name (LetDef (BindPair (Ident s) te2)) | s == name = _
+--                                                                   | otherwise = _
 eval (LetDef (BindPair (Ident s) te)) = isClosedTerm te >>= \yes -> if yes
     then do
         modify . insert s =<< eval (if occurs s te then Mu (fixpoint s te) else te)

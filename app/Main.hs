@@ -16,8 +16,8 @@ import           Lambda.Par                     ( myLexer
                                                 )
 import           System.Console.Haskeline
 
--- >>> pTerm $ myLexer "0 (0 0) (1 1)"
--- Right (App (App (Var 0) (App (Var 0) (Var 0))) (App (Var 1) (Var 1)))
+-- >>> prettyprint <$> (pTerm $ myLexer "λ λ 1 (0 1 0)")
+-- Right "\955 \955 1 0 1 0"
 
 -- | repl main loop
 main :: IO ()
