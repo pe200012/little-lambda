@@ -178,9 +178,11 @@ eval' gas (Let (BindPair (Ident id) te') te) = eval' gas =<< replace id te (if o
     replace name o@(Let (BindPair (Ident s) te3) te2) b =
         let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> pure te2 in eval' gas =<< x
 
-    replace name x@(LetDef (BindPair (Ident s) te2)) b = throwError ValueExpected
+    replace name o@(LetDef (BindPair (Ident s) te2)) b =
+        let x = if name == s then return o else LetDef <$> (BindPair (Ident s) <$> replace name te2 b) in eval' gas =<< x
 eval' gas (LetDef (BindPair (Ident s) te)) = do
-    modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
+    tt <- eval' gas (if occurs s te then Mu (fixpoint s te) else te)
+    modify (insert s tt)
     return Unit
 eval' gas (Named (Ident s)) = gets (lookup s) >>= maybe
     (throwError UnboundVariable)
