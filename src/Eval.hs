@@ -143,11 +143,9 @@ eval (Let (BindPair (Ident id) te') te) = replace id te (if occurs id te' then M
         let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> pure te2 in eval =<< x
 
     replace name x@(LetDef (BindPair (Ident s) te2)) b = throwError ValueExpected
-eval (LetDef (BindPair (Ident s) te)) = isClosedTerm te >>= \yes -> if yes
-    then do
-        modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
-        return Unit
-    else throwError OpenTerm
+eval (LetDef (BindPair (Ident s) te)) = do
+    modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
+    return Unit
 eval (Named (Ident s)) = gets (lookup s) >>= maybe
     (throwError UnboundVariable)
     (\x -> do
@@ -181,11 +179,9 @@ eval' gas (Let (BindPair (Ident id) te') te) = eval' gas =<< replace id te (if o
         let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> pure te2 in eval' gas =<< x
 
     replace name x@(LetDef (BindPair (Ident s) te2)) b = throwError ValueExpected
-eval' gas (LetDef (BindPair (Ident s) te)) = isClosedTerm te >>= \yes -> if yes
-    then do
-        modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
-        return Unit
-    else throwError OpenTerm
+eval' gas (LetDef (BindPair (Ident s) te)) = do
+    modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
+    return Unit
 eval' gas (Named (Ident s)) = gets (lookup s) >>= maybe
     (throwError UnboundVariable)
     (\x -> do
