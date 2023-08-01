@@ -3,32 +3,37 @@
 
 module Eval where
 
-import           Control.Monad                  ( (<=<)
-                                                , when
-                                                )
+import           Control.Monad                  ( (<=<) )
 import           Control.Monad.Except           ( ExceptT
                                                 , MonadError(throwError)
-                                                , runExcept
                                                 , runExceptT
                                                 )
+import           Control.Monad.Identity         ( Identity(runIdentity) )
 import           Control.Monad.State.Lazy       ( StateT(runStateT)
+                                                , evalStateT
                                                 , gets
                                                 , modify
                                                 )
 import           Data.Map.Lazy                  ( Map
+                                                , empty
                                                 , insert
                                                 , lookup
                                                 )
-import qualified Data.Map.Lazy                 as Map
 import           Lambda.Abs
 import           Prelude                 hiding ( lookup )
 
 data LangError = ValueExpected
-               | UnboundVariable
-               | OpenTerm
+               | UnboundVariable String
+               | OpenTerm Term
                deriving (Show)
 
 type LangM m = StateT (Map String Term) (ExceptT LangError m)
+
+runLangMT :: Monad m => LangM m a -> m (Either LangError a)
+runLangMT = runExceptT . flip evalStateT empty
+
+runLangM :: LangM Identity a -> Either LangError a
+runLangM = runIdentity . runExceptT . flip evalStateT empty
 
 pureShift :: Int -> Term -> Term
 pureShift s = shift' s 0
@@ -147,7 +152,7 @@ eval (LetDef (BindPair (Ident s) te)) = do
     modify (insert s (if occurs s te then Mu (fixpoint s te) else te))
     return Unit
 eval (Named (Ident s)) = gets (lookup s) >>= maybe
-    (throwError UnboundVariable)
+    (throwError $ UnboundVariable s)
     (\x -> do
         t <- eval x
         modify (insert s t)
@@ -161,9 +166,9 @@ eval' gas (Var n     ) = return $ Var n
 eval' gas (App te te') = do
     t <- eval' gas te
     case t of
-        Lam te2 -> eval' gas =<< subst te2 te'
+        Lam te2 -> eval' (gas - 1) =<< subst te2 te'
         _       -> return $ App t te'
-eval' gas (Lam te                          ) = return $ Lam te
+eval' gas (Lam te                          ) = Lam <$> eval' (gas - 1) te
 eval' gas (Mu  te                          ) = eval' (gas - 1) =<< subst te (Mu te)
 eval' gas (Let (BindPair (Ident id) te') te) = eval' gas =<< replace id te (if occurs id te' then Mu (fixpoint id te') else te')
   where
@@ -176,7 +181,7 @@ eval' gas (Let (BindPair (Ident id) te') te) = eval' gas =<< replace id te (if o
     replace name (Lam te2    ) b = Lam <$> replace name te2 b
     replace name (Mu  te2    ) b = Mu <$> replace name te2 b
     replace name o@(Let (BindPair (Ident s) te3) te2) b =
-        let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> pure te2 in eval' gas =<< x
+        let x = if name == s then return o else Let <$> (BindPair (Ident s) <$> replace name te3 b) <*> replace name te2 b in eval' gas =<< x
 
     replace name o@(LetDef (BindPair (Ident s) te2)) b =
         let x = if name == s then return o else LetDef <$> (BindPair (Ident s) <$> replace name te2 b) in eval' gas =<< x
@@ -185,7 +190,7 @@ eval' gas (LetDef (BindPair (Ident s) te)) = do
     modify (insert s tt)
     return Unit
 eval' gas (Named (Ident s)) = gets (lookup s) >>= maybe
-    (throwError UnboundVariable)
+    (throwError $ UnboundVariable s)
     (\x -> do
         t <- eval' gas x
         modify (insert s t)
@@ -193,10 +198,16 @@ eval' gas (Named (Ident s)) = gets (lookup s) >>= maybe
     )
 eval' gas Unit = return Unit
 
+eval'TopLevel :: Monad m => Int -> Term -> LangM m Term
+eval'TopLevel gas t = do
+    t'  <- eval' gas t
+    yes <- isClosedTerm t'
+    if yes then return t' else throwError $ OpenTerm t'
+
 prettyprintTopLevel :: Monad m => Term -> LangM m String
 prettyprintTopLevel (Var n)            = return $ show n
 prettyprintTopLevel Unit               = return "()"
-prettyprintTopLevel (Named (Ident id)) = gets (lookup id) >>= maybe (throwError UnboundVariable) prettyprintTopLevel
+prettyprintTopLevel (Named (Ident id)) = gets (lookup id) >>= maybe (throwError $ UnboundVariable id) prettyprintTopLevel
 prettyprintTopLevel (App te te'      ) = do
     let s = case te of
             Named _ -> prettyprint te
