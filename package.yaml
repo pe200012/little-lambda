@@ -1,14 +1,15 @@
-name:                little-lambda
-version:             0.1.0.0
-github:              "pe200012/little-lambda"
-license:             BSD3
-author:              "pe200012"
-maintainer:          "1326263755@qq.com"
-copyright:           "2022 pe200012"
+name: little-lambda
+version: 0.1.0.0
+github: "pe200012/little-lambda"
+license: BSD3
+author: "pe200012"
+maintainer: "1326263755@qq.com"
+copyright: "2022 pe200012"
+category: Compilers/Interpreters
 
 extra-source-files:
-- README.md
-- ChangeLog.md
+  - README.md
+  - ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -17,14 +18,16 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/pe200012/little-lambda#readme>
+description: Please see the README on GitHub at <https://github.com/pe200012/little-lambda#readme>
 
 dependencies:
-- base >= 4.7 && < 5
-- array
-- mtl
-- containers
-- haskeline
+  - base >= 4.7 && < 5
+  - array
+  - mtl
+  - containers
+  - haskeline
+  - text
+  - formatting
 
 library:
   source-dirs: src
@@ -34,22 +37,22 @@ ghc-options:
 
 executables:
   little-lambda-exe:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - little-lambda
+      - little-lambda
 
 tests:
   little-lambda-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - little-lambda
+      - little-lambda

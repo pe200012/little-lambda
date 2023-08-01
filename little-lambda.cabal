@@ -1,12 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
 name:           little-lambda
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/pe200012/little-lambda#readme>
+category:       Compilers/Interpreters
 homepage:       https://github.com/pe200012/little-lambda#readme
 bug-reports:    https://github.com/pe200012/little-lambda/issues
 author:         pe200012
@@ -26,13 +27,13 @@ source-repository head
 library
   exposed-modules:
       Eval
+      Gen
       Lambda.Abs
       Lambda.ErrM
       Lambda.Lex
       Lambda.Par
       Lambda.Print
       Lambda.Skel
-      Lib
   other-modules:
       Paths_little_lambda
   hs-source-dirs:
@@ -42,8 +43,10 @@ library
       array
     , base >=4.7 && <5
     , containers
+    , formatting
     , haskeline
     , mtl
+    , text
   default-language: Haskell2010
 
 executable little-lambda-exe
@@ -57,9 +60,11 @@ executable little-lambda-exe
       array
     , base >=4.7 && <5
     , containers
+    , formatting
     , haskeline
     , little-lambda
     , mtl
+    , text
   default-language: Haskell2010
 
 test-suite little-lambda-test
@@ -74,7 +79,9 @@ test-suite little-lambda-test
       array
     , base >=4.7 && <5
     , containers
+    , formatting
     , haskeline
     , little-lambda
     , mtl
+    , text
   default-language: Haskell2010
